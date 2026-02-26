@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Heartbreak Experience</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;600&family=Space+Mono:wght@400;700&display=swap');
+
+  *, *::before, *::after {
+    margin: 0; padding: 0; box-sizing: border-box;
+    cursor: none;
+  }
+
+#bgVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;  /* 🔥 PENTING */
+  opacity: 0.45;
+  filter: brightness(0.5) contrast(1.3) saturate(1.1);
+  transition: filter 2s ease, opacity 2s ease;
+  pointer-events: none;
+}
+  :root {
+    --cyan: #00e5ff;
+    --cyan-dim: #00e5ff44;
+    --violet: #8b5cf6;
+    --violet-dim: #8b5cf622;
+    --dark: #000000;
+    --charcoal: #0a0a0f;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── CUSTOM CURSOR ── */
+  #cursorOuter {
+    position: fixed; width: 40px; height: 40px;
+    border: 1.5px solid var(--cyan-dim);
+    border-radius: 50%; pointer-events: none;
+    z-index: 99999; transition: transform 0.15s ease, opacity 0.3s;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 15px var(--cyan-dim), inset 0 0 10px var(--cyan-dim);
+  }
+  #cursorInner {
+    position: fixed; width: 6px; height: 6px;
+    background: var(--cyan); border-radius: 50%;
+    pointer-events: none; z-index: 99999;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px var(--cyan), 0 0 20px var(--cyan-dim);
+    transition: transform 0.05s ease;
+  }
+
+  /* ── MAIN SCENE ── */
+  #scene {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    overflow: hidden;
+    transform: scale(1);
+    filter: contrast(1.1) brightness(1.03);
+  }
+  #scene.zooming { transform: scale(1.15); }
+
+  /* ── ANIMATED GRADIENT BG ── */
+  #gradientBg {
+    opacity: 0.35;
+    position: absolute; inset: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 30% 50%, #0a0a2e 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 50%, #0d001a 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, #001a2e 0%, transparent 40%),
+                linear-gradient(180deg, #000 0%, #020210 50%, #000 100%);
+    animation: bgDrift 30s ease-in-out infinite alternate;
+    z-index: 1;
+  }
+  @keyframes bgDrift {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(-3%, 2%) rotate(0.5deg); }
+    66% { transform: translate(2%, -2%) rotate(-0.3deg); }
+    100% { transform: translate(-1%, 1%) rotate(0.2deg); }
+  }
+
+  /* ── AMBIENT GLOW (audio reactive) ── */
+  #ambientGlow {
+    position: absolute; inset: 0; z-index: 2;
+    pointer-events: none; opacity: 0;
+    transition: opacity 2s ease;
+    background: radial-gradient(circle at var(--glow-x, 50%) var(--glow-y, 50%),
+      rgba(0, 229, 255, 0.04) 0%, transparent 60%);
+  }
+  #ambientGlow.active { opacity: 1; }
+
+  /* ── MOUSE LIGHT ── */
+  #mouseLight {
+    position: absolute; inset: 0; z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(circle 400px at var(--mx, 50%) var(--my, 50%),
+      rgba(0, 229, 255, 0.03) 0%, transparent 70%);
+  }
+
+  /* ── FOG OVERLAY ── */
+  #fog {
+    position: absolute; inset: 0; z-index: 3;
+    pointer-events: none; opacity: 0.12;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 800 600' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.003' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    background-size: cover;
+    animation: fogMove 40s ease-in-out infinite alternate;
+    mix-blend-mode: soft-light;
+  }
+  @keyframes fogMove {
+    0% { transform: scale(1.1) translateX(0); }
+    100% { transform: scale(1.2) translateX(-5%); }
+  }
+
+  /* ── LIGHT BEAM ── */
+  #lightBeam {
+    position: absolute; z-index: 3;
+    width: 2px; height: 150%;
+    top: -25%;
+    background: linear-gradient(180deg, transparent, rgba(0,229,255,0.06), transparent);
+    animation: beamSweep 20s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes beamSweep {
+    0% { left: -5%; transform: rotate(-2deg); opacity: 0; }
+    10% { opacity: 1; }
+    50% { left: 105%; transform: rotate(2deg); opacity: 1; }
+    60% { opacity: 0; }
+    100% { left: 105%; opacity: 0; }
+  }
+
+  /* ── PARTICLES ── */
+  #particles {
+    position: absolute; inset: 0; z-index: 4;
+    pointer-events: none;
+  }
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: var(--cyan);
+    border-radius: 50%;
+    opacity: 0;
+    box-shadow: 0 0 6px var(--cyan-dim);
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 0.4; }
+    90% { opacity: 0.2; }
+    100% { transform: translateY(-10vh) translateX(30px); opacity: 0; }
+  }
+
+  /* ── VIGNETTE ── */
+  #vignette {
+    position: absolute; inset: 0; z-index: 5;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%);
+  }
+
+  /* ── BREATHING BRIGHTNESS ── */
+  #breathing {
+    position: absolute; inset: 0; z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 50%, rgba(0,229,255,0.015) 0%, transparent 60%);
+    animation: breathe 8s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+
+  /* ── NEON BORDER ── */
+  #neonBorder {
+    position: absolute; inset: 8px; z-index: 6;
+    pointer-events: none;
+    border: 1px solid transparent;
+    border-image: linear-gradient(var(--border-angle, 0deg), var(--cyan-dim), transparent, var(--violet-dim), transparent) 1;
+    animation: borderRotate 12s linear infinite;
+    opacity: 0.4;
+  }
+  @keyframes borderRotate {
+    to { --border-angle: 360deg; }
+  }
+  @property --border-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  /* ── INTRO SCREEN ── */
+  #introScreen {
+    position: fixed; inset: 0; z-index: 1000;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    transition: opacity 1.5s ease;
+  }
+  #introScreen.hidden { opacity: 0; pointer-events: none; }
+
+  #glitchOverlay {
+    position: absolute; inset: 0;
+    background: #000; z-index: 1001;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+
+  .glitch-line {
+    position: absolute; left: 0; width: 100%;
+    height: 2px;
+    background: var(--cyan);
+    opacity: 0;
+    animation: glitchFlash 0.1s ease forwards;
+  }
+  @keyframes glitchFlash {
+    0% { opacity: 0.8; transform: scaleX(1.5) translateX(-10%); }
+    50% { opacity: 0.4; transform: scaleX(0.8) translateX(5%); }
+    100% { opacity: 0; transform: scaleX(1) translateX(0); }
+  }
+
+  #introQuote {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(14px, 2.5vw, 22px);
+    color: var(--cyan);
+    letter-spacing: 3px;
+    text-align: center;
+    opacity: 0;
+    text-shadow: 0 0 30px var(--cyan-dim), 0 0 60px rgba(0,229,255,0.1);
+    z-index: 1002;
+    padding: 0 20px;
+    line-height: 1.8;
+    max-width: 700px;
+    transition: opacity 2s ease;
+  }
+  #introQuote.visible { opacity: 1; }
+  #introQuote.fadeout { opacity: 0; transition: opacity 3s ease; }
+
+  #startPrompt {
+    position: absolute; bottom: 15%;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 4px;
+    color: rgba(0,229,255,0.4);
+    text-transform: uppercase;
+    z-index: 1002;
+    animation: promptPulse 3s ease-in-out infinite;
+  }
+  @keyframes promptPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+  }
+
+  /* ── UPLOAD AREA ── */
+  #uploadArea {
+    position: fixed; inset: 0; z-index: 900;
+    background: rgba(0,0,0,0.95);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 1s ease;
+  }
+  #uploadArea.visible { opacity: 1; pointer-events: all; }
+
+  #uploadLabel {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    width: clamp(250px, 60vw, 400px);
+    height: 180px;
+    border: 1px solid var(--cyan-dim);
+    border-radius: 16px;
+    background: rgba(0,229,255,0.02);
+    backdrop-filter: blur(10px);
+    transition: all 0.5s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  #uploadLabel:hover {
+    border-color: var(--cyan);
+    box-shadow: 0 0 40px rgba(0,229,255,0.1), inset 0 0 40px rgba(0,229,255,0.03);
+  }
+  #uploadLabel::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,229,255,0.03) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  #uploadLabel:hover::before { opacity: 1; }
+
+  .upload-icon {
+    font-size: 36px; margin-bottom: 12px;
+    color: var(--cyan); opacity: 0.6;
+    filter: drop-shadow(0 0 10px var(--cyan-dim));
+  }
+  .upload-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    color: rgba(0,229,255,0.5);
+    text-transform: uppercase;
+  }
+  .upload-sub {
+    font-size: 10px; color: rgba(255,255,255,0.2);
+    margin-top: 8px; letter-spacing: 1px;
+  }
+  #musicUpload { display: none; }
+
+  /* ── MAIN CONTENT ── */
+  #mainContent {
+    position: relative; z-index: 10;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+    opacity: 0; pointer-events: none;
+    transition: opacity 2s ease;
+  }
+  #mainContent.visible { opacity: 1; pointer-events: all; }
+
+  /* ── LYRICS ── */
+  #lyricsContainer {
+    text-align: center;
+    padding: 0 30px;
+    min-height: 120px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    margin-bottom: 60px;
+  }
+
+  #lyricLine {
+    font-family: 'Inter', sans-serif;
+    font-weight: 200;
+    font-size: clamp(22px, 5vw, 48px);
+    color: rgba(0, 229, 255, 0.15);
+    letter-spacing: clamp(4px, 1.5vw, 12px);
+    text-shadow: none;
+    filter: blur(3px);
+    transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    line-height: 1.6;
+    max-width: 90vw;
+    word-wrap: break-word;
+  }
+  #lyricLine.active {
+    color: rgba(0, 229, 255, 0.9);
+    filter: blur(0);
+    text-shadow: 0 0 30px rgba(0,229,255,0.3),
+                 0 0 60px rgba(0,229,255,0.15),
+                 0 0 100px rgba(0,229,255,0.05);
+    animation: glowPulse 3s ease-in-out infinite;
+  }
+  #lyricLine.fading {
+    color: rgba(0, 229, 255, 0.08);
+    filter: blur(4px);
+    letter-spacing: clamp(6px, 2vw, 16px);
+  }
+
+  @keyframes glowPulse {
+    0%, 100% { text-shadow: 0 0 30px rgba(0,229,255,0.3), 0 0 60px rgba(0,229,255,0.15); }
+    50% { text-shadow: 0 0 40px rgba(0,229,255,0.5), 0 0 80px rgba(0,229,255,0.25), 0 0 120px rgba(0,229,255,0.1); }
+  }
+
+  #lyricSub {
+    font-size: clamp(10px, 1.5vw, 13px);
+    color: rgba(255,255,255,0.08);
+    letter-spacing: 6px;
+    margin-top: 20px;
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+    transition: all 1s ease;
+  }
+
+  /* ── CONTROLS ── */
+  #controls {
+    position: fixed; bottom: clamp(20px, 5vh, 50px);
+    left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column;
+    align-items: center; gap: 16px;
+    z-index: 20; width: clamp(280px, 80vw, 500px);
+  }
+
+  /* Progress Bar */
+  #progressWrap {
+    width: 100%; height: 3px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px; position: relative;
+    overflow: hidden;
+  }
+  #progressWrap:hover { height: 5px; }
+  #progressBar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
+    border-radius: 3px;
+    box-shadow: 0 0 10px var(--cyan-dim);
+    transition: width 0.3s linear;
+  }
+  #progressWrap input[type="range"] {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    opacity: 0; cursor: none;
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Button Row */
+  #btnRow {
+    display: flex; align-items: center; gap: 20px;
+    width: 100%; justify-content: center;
+  }
+
+  #playBtn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--cyan-dim);
+    background: rgba(0,229,255,0.03);
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.4s ease;
+    flex-shrink: 0;
+  }
+  #playBtn:hover {
+    border-color: var(--cyan);
+    box-shadow: 0 0 25px rgba(0,229,255,0.15), inset 0 0 15px rgba(0,229,255,0.05);
+    background: rgba(0,229,255,0.06);
+  }
+  #playBtn svg {
+    fill: var(--cyan);
+    width: 16px; height: 16px;
+    opacity: 0.8;
+    filter: drop-shadow(0 0 5px var(--cyan-dim));
+  }
+
+  /* Volume */
+  #volumeWrap {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 20px;
+    padding: 6px 16px;
+  }
+  #volumeIcon {
+    font-size: 14px; opacity: 0.4;
+    color: var(--cyan);
+  }
+  #volumeSlider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 80px; height: 2px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    outline: none;
+    cursor: none;
+  }
+  #volumeSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan-dim);
+    cursor: none;
+  }
+  #volumeSlider::-moz-range-thumb {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan-dim);
+    border: none; cursor: none;
+  }
+
+  /* Time Display */
+  #timeDisplay {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.15);
+    letter-spacing: 2px;
+  }
+
+  /* ── ENDING SCENE ── */
+  #endingOverlay {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(0,0,0,0);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 30px;
+    pointer-events: none;
+    transition: background 4s ease;
+  }
+  #endingOverlay.active {
+    background: rgba(0,0,0,0.85);
+  }
+  #endingText {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(11px, 2vw, 16px);
+    color: rgba(0,229,255,0);
+    letter-spacing: 4px;
+    text-align: center;
+    padding: 0 20px;
+    transition: color 3s ease;
+    text-shadow: 0 0 30px rgba(0,229,255,0.1);
+    line-height: 2;
+  }
+  #endingOverlay.active #endingText {
+    color: rgba(0,229,255,0.6);
+  }
+
+  /* ── TYPING CURSOR ── */
+  .typing-cursor {
+    display: inline-block;
+    width: 2px; height: 1em;
+    background: var(--cyan);
+    margin-left: 4px;
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+    opacity: 0.6;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0; }
+  }
+
+  /* ── MOBILE ── */
+  @media (max-width: 640px) {
+    #controls { width: 90vw; bottom: 20px; }
+    #volumeWrap { padding: 4px 10px; }
+    #volumeSlider { width: 50px; }
+    #neonBorder { inset: 4px; }
+  }
+
+  @media (hover: none) {
+    #cursorOuter, #cursorInner { display: none; }
+    *, *::before, *::after { cursor: default; }
+  }
+</style>
+</head>
+<body>
+  <!-- Cursors -->
+  <div id="cursorOuter"></div>
+  <div id="cursorInner"></div>
+
+  <!-- Audio -->
+  <audio id="bgMusic" src="music1.mp3" preload="auto"></audio>
+
+  <!-- Intro Screen -->
+  <div id="introScreen">
+    <div id="glitchOverlay"></div>
+    <div id="introQuote">"Trust once broken,<br>echoes louder than love."</div>
+    <div id="startPrompt">click to enter</div>
+  </div>
+
+  <!-- Main Scene -->
+  <div id="scene">
+  <video id="bgVideo" autoplay muted loop playsinline>
+  <source src="video.mp4" type="video/mp4">
+</video>
+    <div id="gradientBg"></div>
+    <div id="ambientGlow"></div>
+    <div id="mouseLight"></div>
+    <div id="breathing"></div>
+    <div id="fog"></div>
+    <div id="lightBeam"></div>
+    <div id="particles"></div>
+    <div id="vignette"></div>
+    <div id="neonBorder"></div>
+
+    <div id="mainContent">
+      <div id="lyricsContainer">
+        <div id="lyricLine"></div>
+        <div id="lyricSub"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls" style="opacity:0; pointer-events:none; transition: opacity 1.5s ease;">
+    <div id="progressWrap">
+      <div id="progressBar"></div>
+      <input type="range" id="progressSeek" min="0" max="100" value="0" step="0.1">
+    </div>
+    <div id="btnRow">
+      <div id="timeDisplay">0:00 / 0:00</div>
+      <button id="playBtn" aria-label="Play/Pause">
+        <svg id="playIcon" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+        <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>
+      </button>
+      <div id="volumeWrap">
+        <span id="volumeIcon">♪</span>
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.7">
+      </div>
+    </div>
+  </div>
+
+  <!-- Ending Overlay -->
+  <div id="endingOverlay">
+    <div id="endingText">You loved. But she chose yesterday.</div>
+  </div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ─── LYRICS DATA ───
+  const lyrics = [
+    { time: 0, text: "Aku sungguh cinta uh-oh" },
+    { time: 7, text: "Aku sungguh cinta" },
+    { time: 12, text: "Tapi mungkin kamu yang bodoh" },
+    { time: 16, text: "Dia hancurkan kamu" },
+    { time: 20, text: "Kususun kembali hatimu" },
+    { time: 24, text: "Tapi mengapa kamu" },
+    { time: 29, text: "Masih terpenjara bayangnya" },
+    { time: 33, text: "Aku sungguh cinta uh-oh" },
+    { time: 41, text: "Aku sungguh cinta" },
+    { time: 45, text: "tapi mungkin kamu yang bodoh" }
+  ];
+
+  // ─── DOM REFS ───
+  const bgVideo = document.getElementById('bgVideo');
+  const audio = document.getElementById('bgMusic');
+  const introScreen = document.getElementById('introScreen');
+  const introQuote = document.getElementById('introQuote');
+  const glitchOverlay = document.getElementById('glitchOverlay');
+  const mainContent = document.getElementById('mainContent');
+  const scene = document.getElementById('scene');
+  const lyricLine = document.getElementById('lyricLine');
+  const lyricSub = document.getElementById('lyricSub');
+  const controls = document.getElementById('controls');
+  const playBtn = document.getElementById('playBtn');
+  const playIcon = document.getElementById('playIcon');
+  const pauseIcon = document.getElementById('pauseIcon');
+  const progressBar = document.getElementById('progressBar');
+  const progressSeek = document.getElementById('progressSeek');
+  const volumeSlider = document.getElementById('volumeSlider');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const ambientGlow = document.getElementById('ambientGlow');
+  const endingOverlay = document.getElementById('endingOverlay');
+  const cursorOuter = document.getElementById('cursorOuter');
+  const cursorInner = document.getElementById('cursorInner');
+  const mouseLight = document.getElementById('mouseLight');
+
+  // ─── AUDIO CONTEXT ───
+  let audioCtx, analyser, source, dataArray;
+  let audioConnected = false;
+  let isPlaying = false;
+  let currentLyricIndex = -1;
+  let typingInterval = null;
+  let endingTimeout = null;
+  let hasEnded = false;
+
+  // ─── PARTICLES ───
+  function createParticles() {
+    const container = document.getElementById('particles');
+    const count = window.innerWidth < 640 ? 25 : 50;
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (15 + Math.random() * 25) + 's';
+      p.style.animationDelay = (Math.random() * 20) + 's';
+      p.style.width = (1 + Math.random() * 2) + 'px';
+      p.style.height = p.style.width;
+      container.appendChild(p);
+    }
+  }
+  createParticles();
+
+  // ─── CUSTOM CURSOR ───
+  let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+  let cursorX = mouseX, cursorY = mouseY;
+
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    mouseLight.style.setProperty('--mx', e.clientX + 'px');
+    mouseLight.style.setProperty('--my', e.clientY + 'px');
+  });
+
+  document.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    mouseLight.style.setProperty('--mx', t.clientX + 'px');
+    mouseLight.style.setProperty('--my', t.clientY + 'px');
+  }, { passive: true });
+
+  function animateCursor() {
+    cursorX += (mouseX - cursorX) * 0.12;
+    cursorY += (mouseY - cursorY) * 0.12;
+    cursorOuter.style.left = cursorX + 'px';
+    cursorOuter.style.top = cursorY + 'px';
+    cursorInner.style.left = mouseX + 'px';
+    cursorInner.style.top = mouseY + 'px';
+    requestAnimationFrame(animateCursor);
+  }
+  animateCursor();
+
+  // ─── INTRO SEQUENCE ───
+  function runIntro() {
+    // Glitch effect
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        const line = document.createElement('div');
+        line.className = 'glitch-line';
+        line.style.top = (Math.random() * 100) + '%';
+        line.style.animationDuration = (60 + Math.random() * 140) + 'ms';
+        glitchOverlay.appendChild(line);
+        setTimeout(() => line.remove(), 200);
+      }, i * 120);
+    }
+
+    // Show quote
+    setTimeout(() => {
+      introQuote.classList.add('visible');
+    }, 1200);
+
+    // Wait for click
+    introScreen.addEventListener('click', startExperience);
+    introScreen.addEventListener('touchend', startExperience);
+  }
+
+function startExperience(e) {
+    e.preventDefault();
+    introScreen.removeEventListener('click', startExperience);
+    introScreen.removeEventListener('touchend', startExperience);
+
+    introQuote.classList.remove('visible');
+    introQuote.classList.add('fadeout');
+
+    setTimeout(() => {
+        introScreen.classList.add('hidden');
+        setTimeout(() => {
+            introScreen.style.display = 'none';
+            initAudio();   // ⬅️ LANGSUNG INIT AUDIO
+        }, 1500);
+    }, 1000);
+}
+
+  runIntro();
+
+
+  // ─── INIT AUDIO ───
+  function initAudio() {
+    mainContent.classList.add('visible');
+    controls.style.opacity = '1';
+    controls.style.pointerEvents = 'all';
+    scene.classList.add('zooming');
+    ambientGlow.classList.add('active');
+
+    audio.volume = parseFloat(volumeSlider.value);
+    audio.play().then(() => {
+      isPlaying = true;
+      updatePlayIcon();
+      connectAudio();
+      bgVideo.play();
+    }).catch(() => {
+      // Autoplay blocked, wait for user interaction
+      const handler = () => {
+        audio.play().then(() => {
+         isPlaying = true;
+        updatePlayIcon();
+          connectAudio();
+        bgVideo.play();
+});
+        bgVideo.play().catch(() => {
+  document.addEventListener('click', () => bgVideo.play(), { once: true });
+});
+        document.removeEventListener('click', handler);
+        document.removeEventListener('touchend', handler);
+      };
+      document.addEventListener('click', handler);
+      document.addEventListener('touchend', handler);
+    });
+
+    startVisualLoop();
+  }
+
+function connectAudio() {
+  if (audioConnected) return;
+  audioConnected = true;
+
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  source = audioCtx.createMediaElementSource(audio);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 256;
+  analyser.smoothingTimeConstant = 0.85;
+
+  source.connect(analyser);
+  analyser.connect(audioCtx.destination);
+
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
+}
+
+  // ─── PLAY/PAUSE ───
+  playBtn.addEventListener('click', togglePlay);
+  function togglePlay() {
+    if (!audio.src) return;
+    if (audio.paused) {
+      audio.play();
+      isPlaying = true;
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    } else {
+      audio.pause();
+      isPlaying = false;
+    }
+    updatePlayIcon();
+  }
+
+  function updatePlayIcon() {
+    if (isPlaying) {
+      playIcon.style.display = 'none';
+      pauseIcon.style.display = 'block';
+    } else {
+      playIcon.style.display = 'block';
+      pauseIcon.style.display = 'none';
+    }
+  }
+
+  // ─── VOLUME ───
+  volumeSlider.addEventListener('input', () => {
+    audio.volume = parseFloat(volumeSlider.value);
+  });
+
+  // ─── PROGRESS ───
+  progressSeek.addEventListener('input', () => {
+    if (audio.duration) {
+      audio.currentTime = (progressSeek.value / 100) * audio.duration;
+    }
+  });
+
+  // ─── TIME FORMAT ───
+  function formatTime(s) {
+    if (isNaN(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  // ─── TYPING EFFECT ───
+  function typeText(element, text, speed) {
+    if (typingInterval) clearInterval(typingInterval);
+    element.textContent = '';
+    let i = 0;
+    const cursor = document.createElement('span');
+    cursor.className = 'typing-cursor';
+    element.appendChild(cursor);
+
+    typingInterval = setInterval(() => {
+      if (i < text.length) {
+        element.textContent = text.substring(0, i + 1);
+        element.appendChild(cursor);
+        i++;
+      } else {
+        clearInterval(typingInterval);
+        typingInterval = null;
+        setTimeout(() => cursor.remove(), 2000);
+      }
+    }, speed);
+  }
+
+  // ─── LYRICS SYNC ───
+  function updateLyrics() {
+    const ct = audio.currentTime;
+    let idx = -1;
+    for (let i = lyrics.length - 1; i >= 0; i--) {
+      if (ct >= lyrics[i].time) {
+        idx = i;
+        break;
+      }
+    }
+
+    if (idx !== currentLyricIndex) {
+      currentLyricIndex = idx;
+      if (idx >= 0) {
+        lyricLine.classList.remove('active', 'fading');
+        lyricLine.classList.add('fading');
+
+        setTimeout(() => {
+          typeText(lyricLine, lyrics[idx].text, 60);
+          lyricLine.classList.remove('fading');
+
+          setTimeout(() => {
+            lyricLine.classList.add('active');
+          }, lyrics[idx].text.length * 60 + 100);
+        }, 300);
+
+        // Sub text
+        const nextIdx = idx + 1;
+        if (nextIdx < lyrics.length) {
+          lyricSub.textContent = '· · ·';
+          lyricSub.style.opacity = '1';
+        } else {
+          lyricSub.textContent = '';
+        }
+      }
+    }
+  }
+
+  // ─── AUDIO REACTIVE AMBIENT ───
+  function getAmplitude() {
+    if (!analyser || !dataArray) return 0;
+    analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+    return sum / dataArray.length / 255;
+  }
+  // ─── ENDING ───
+  audio.addEventListener('ended', () => {
+  if (hasEnded) return;
+  hasEnded = true;
+  isPlaying = false;
+  updatePlayIcon();
+
+  // 🔥 Video fade & stop
+  if (!bgVideo.paused) {
+    bgVideo.style.filter = "brightness(0.1)";
+    bgVideo.style.opacity = "0.2";
+
+    setTimeout(() => {
+      bgVideo.pause();
+      bgVideo.currentTime = 0;
+    }, 2000);
+  }
+
+  endingOverlay.classList.add('active');
+
+  setTimeout(() => {
+    endingOverlay.classList.remove('active');
+    hasEnded = false;
+    currentLyricIndex = -1;
+    audio.currentTime = 0;
+
+    // 🔥 Restore video brightness
+    bgVideo.style.filter = "brightness(0.6)";
+    bgVideo.style.opacity = "0.45";
+    bgVideo.play();
+
+    audio.play().then(() => {
+      isPlaying = true;
+      updatePlayIcon();
+    });
+
+  }, 5000);
+});
+
+  // ─── MAIN VISUAL LOOP ───
+  function startVisualLoop() {
+    function loop() {
+      // Progress
+      if (audio.duration) {
+        const pct = (audio.currentTime / audio.duration) * 100;
+        progressBar.style.width = pct + '%';
+        progressSeek.value = pct;
+        timeDisplay.textContent = formatTime(audio.currentTime) + ' / ' + formatTime(audio.duration);
+      }
+
+      // Lyrics
+      updateLyrics();
+
+      // Audio reactive glow
+      const amp = getAmplitude();
+      const glowIntensity = 0.05 + amp * 0.25;
+      ambientGlow.style.background = `radial-gradient(circle at 50% 50%, rgba(0,229,255,${glowIntensity}) 0%, transparent 45%)`;
+      // Breathing with amplitude
+      const br = document.getElementById('breathing');
+      if (br) {
+        br.style.opacity = (0.2 + amp * 0.4).toString();
+      }
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ─── HOVER GLOW EFFECT ON BUTTONS ───
+  document.querySelectorAll('#playBtn').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursorOuter.style.transform = 'translate(-50%, -50%) scale(1.5)';
+      cursorOuter.style.borderColor = 'var(--cyan)';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursorOuter.style.transform = 'translate(-50%, -50%) scale(1)';
+      cursorOuter.style.borderColor = 'var(--cyan-dim)';
+    });
+  });
+
+  // ─── PREVENT CONTEXT MENU ───
+  document.addEventListener('contextmenu', e => e.preventDefault());
+
+})();
+</script>
+</body>
+</html>
